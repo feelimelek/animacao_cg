@@ -2,10 +2,15 @@
 #include <cmath>
 #include <ctime>
 #include <stdio.h> 
+#include <SOIL/SOIL.h> // for image loading
 
 // Window dimensions
 GLint windowWidth = 800;
 GLint windowHeight = 800;
+
+// Background properties
+GLuint textureID;
+GLfloat backgroundOffset = 0.0f;
 
 // Ball properties
 GLfloat ball1Radius = 0.04f;
@@ -14,6 +19,9 @@ GLfloat ball2Radius = 0.04f;
 GLfloat ellipseXRadius = 0.15f;
 GLfloat ellipseYRadius = 0.07f;
 
+GLfloat backgroundColor_r = 0.0f;
+GLfloat backgroundColor_g = 0.0f;
+GLfloat backgroundColor_b = 0.0f;
 
 GLfloat ball1Color_r = 1.0f;
 GLfloat ball1Color_g = 0.0f;
@@ -21,7 +29,7 @@ GLfloat ball1Color_b = 0.0f;
 
 GLfloat ball2Color_r = 0.0f;
 GLfloat ball2Color_g = 0.0f;
-GLfloat ball2Color_b = 1.0f;
+GLfloat ball2Color_b = 255.0f;
 
 GLfloat ball1Color_r_antiga = 256;
 GLfloat ball1Color_g_antiga = 256;
@@ -41,27 +49,39 @@ GLfloat toRadians = 3.14159 / 180.0;
 GLfloat rotationAngle = 45.0f;
 
 bool going_up = false;
-bool goind_down = false;
+bool going_down = false;
+
+
+// Load texture function
+GLuint LoadTexture(const char* filename) {
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    int width, height;
+    unsigned char* image = SOIL_load_image(filename, &width, &height, 0, SOIL_LOAD_RGB);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+    SOIL_free_image_data(image);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    return textureID;
+}
 
 void init() {
-     // Set up the projection matrix
+    // Set up the projection matrix
+    // Load and set up the background texture
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+    textureID = LoadTexture("sea.png");
+    // Enable texture mapping
+    glEnable(GL_TEXTURE_2D);
+    glMatrixMode(GL_TEXTURE);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(0, 800, 0, 600, -1, 1);
-
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-}
-
-void resetLastColors(int value) {
-    ball1Color_r = ball1Color_r_antiga;
-    ball1Color_g = ball1Color_g_antiga;
-    ball1Color_b = ball1Color_b_antiga;
-    printf("R%f", ball1Color_r);
 
 }
 
-void nothing(int value) {
-    ball1Color_b = 1.0f;
+void changeColor(int value) {
+    ball1Color_b = 255.0f;
     ball1Color_r = 0.0f;
     ball1Color_g = 0.0f;
     return;
@@ -69,12 +89,24 @@ void nothing(int value) {
 
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
+    // Render the background quad
+     // Set the desired color filter
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glColor3f(100.5f, 100.5f, 100.5f); // Modify the RGB values as desired
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0f + backgroundOffset, 0.0f); glVertex2f(-1.0f, -1.0f);
+    glTexCoord2f(1.0f + backgroundOffset, 0.0f); glVertex2f(1.0f, -1.0f);
+    glTexCoord2f(1.0f + backgroundOffset, 1.0f); glVertex2f(1.0f, 1.0f);
+    glTexCoord2f(0.0f + backgroundOffset, 1.0f); glVertex2f(-1.0f, 1.0f);
+    glEnd();
+
     glLoadIdentity();
     // Draw ball 1
     glTranslatef(ball1X, ball1Y, 0.0f);
     glRotatef(rotationAngle, 0, 0, 1);
     glBegin(GL_TRIANGLE_FAN);
-    glColor3f(ball1Color_r, ball1Color_g, ball1Color_b);
     for (int i = 0; i < 360; i++) {
         GLfloat angle = i * 3.14159 / 180.0;
         GLfloat x = ellipseXRadius * cos(angle);
@@ -85,12 +117,12 @@ void display() {
         GLfloat yShadow = 0.92 * ellipseYRadius * sin(angle);
         glColor3f(0.10 * ball1Color_r, ball1Color_g, ball1Color_b);
         glVertex2f(xShadow, yShadow);
+        // cria o bico
         if(cos(angle) == 1) {
-            glColor3f(ball1Color_r, ball1Color_g, ball1Color_b); // Red color
+            glColor3f(0.05 * ball1Color_r, ball1Color_g, ball1Color_b); // Red color
             glVertex2f(x, y - ellipseYRadius/2); // First vertex
             glVertex2f(x + ellipseXRadius * 1.5, y); // Third vertex
             glVertex2f(x, y + ellipseYRadius/2); // Second vertex
-
         }
     }
     glEnd();
@@ -113,22 +145,21 @@ void display() {
 void update(int value) {
     // Update the position of both balls
     ball2X -= ballSpeed;
-
+    backgroundOffset += 0.0009f;
     
     if ((ball1X + ellipseXRadius * 2) >= ball2X - ball1Radius) {
         ball2X = 0.8f;
-
+   
+        if (ball1Color_r < 0.0f) {
+            ball1Color_r  = 0.0f;
+            ball2X = 222222.0f;
+            return;
+        }
         //troca a cor do passarinho
         ball1Color_r_antiga = ball1Color_r;
         ball1Color_g_antiga = ball1Color_g;
         ball1Color_b_antiga = ball1Color_b;
-        glutTimerFunc(10, nothing, 0);
-
-        if (ball1Color_r < 0.0f) {
-            ball1Color_r  = 0.0f;
-            ball2Color_b = 0.0f;
-            return;
-        }
+        glutTimerFunc(10, changeColor, 0);
 
         glTranslatef(ball1X, ball1Y, 0.0f);
         glBegin(GL_TRIANGLE_FAN);
@@ -154,20 +185,19 @@ void update(int value) {
         // toda vez que ele sobre, muda o angulo de rotacao para ele girar
         rotationAngle += 10.0f;
     }
-    if (goind_down) {
+    if (going_down) {
         ball1Y -= ballSpeed;
         // quando está descendo, volta a cor vermelha um pouco mais clara
-        ball1Color_r = ball1Color_r_antiga;
+        ball1Color_r = ball1Color_r_antiga - 0.3f;
         ball1Color_g = ball1Color_g_antiga;
         ball1Color_b = ball1Color_b_antiga;
-        ball1Color_r -= 0.3f;
     }
 
     if (ball1Y < 0.0f) {
-        goind_down = false;
+        going_down = false;
     }
     if (ball1Y >= 0.2f) {
-        goind_down = true;
+        going_down = true;
         going_up = false;
     }
 
@@ -180,11 +210,9 @@ int main(int argc, char** argv) {
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowSize(windowWidth, windowHeight);
     glutCreateWindow("Moving Balls");
-    glViewport(0, 0, 800, 600);
     init();
     glutDisplayFunc(display);
     glutTimerFunc(0, update, 0);
-
     glutMainLoop();
     return 0;
 }
