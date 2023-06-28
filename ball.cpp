@@ -37,8 +37,8 @@ GLfloat ball1Color_b_antiga = 256;
 
 GLfloat ball1X = -0.5f; // X position of ball 1
 GLfloat ball2X = 0.8f; // X position of ball 2
-GLfloat ball1Y = 0.0f; // Y position of both balls
-GLfloat ball2Y = 0.0f; // Y position of both balls
+GLfloat ball1Y = 0.14f; // Y position of both balls
+GLfloat ball2Y = 0.14f; // Y position of both balls
 GLfloat ballSpeed = 0.003f; // Horizontal speed of the balls
 
 GLint rectangleWidth = 100;
@@ -94,7 +94,7 @@ void display() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glBindTexture(GL_TEXTURE_2D, textureID);
-    glColor3f(100.5f, 100.5f, 100.5f); // Modify the RGB values as desired
+    glColor3f(255.0f, 255.0f, 255.0f); // Modify the RGB values as desired
     glBegin(GL_QUADS);
     glTexCoord2f(0.0f + backgroundOffset, 0.0f); glVertex2f(-1.0f, -1.0f);
     glTexCoord2f(1.0f + backgroundOffset, 0.0f); glVertex2f(1.0f, -1.0f);
@@ -152,7 +152,8 @@ void update(int value) {
    
         if (ball1Color_r < 0.0f) {
             ball1Color_r  = 0.0f;
-            ball2X = 222222.0f;
+            ball2Color_b = 0.0;
+
             return;
         }
         //troca a cor do passarinho
@@ -193,10 +194,10 @@ void update(int value) {
         ball1Color_b = ball1Color_b_antiga;
     }
 
-    if (ball1Y < 0.0f) {
+    if (ball1Y < 0.14f) {
         going_down = false;
     }
-    if (ball1Y >= 0.2f) {
+    if (ball1Y >= 0.4f) {
         going_down = true;
         going_up = false;
     }
